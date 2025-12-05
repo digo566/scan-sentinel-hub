@@ -3,10 +3,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { SubmissionsTable } from '@/components/admin/SubmissionsTable';
 import { StatsCards } from '@/components/admin/StatsCards';
+import { PartnersManager } from '@/components/admin/PartnersManager';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shield, LogOut, Home, Loader2, AlertTriangle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Shield, LogOut, Home, Loader2, AlertTriangle, FileText, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 type AnalysisStatus = 'pendente' | 'seguro' | 'vulneravel';
@@ -136,30 +138,49 @@ const Admin = () => {
         {/* Stats */}
         <StatsCards {...stats} />
 
-        {/* Filters */}
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">Filtrar por:</span>
-          <Select value={filter} onValueChange={(val) => setFilter(val as 'all' | AnalysisStatus)}>
-            <SelectTrigger className="w-[180px] bg-input border-border">
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="pendente">Pendentes</SelectItem>
-              <SelectItem value="seguro">Seguros</SelectItem>
-              <SelectItem value="vulneravel">Vulneráveis</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Tabs defaultValue="submissions" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsTrigger value="submissions" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Pedidos
+            </TabsTrigger>
+            <TabsTrigger value="clients" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Clientes
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Table */}
-        {loadingData ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          </div>
-        ) : (
-          <SubmissionsTable submissions={submissions} onRefresh={fetchSubmissions} />
-        )}
+          <TabsContent value="submissions" className="space-y-4 mt-6">
+            {/* Filters */}
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">Filtrar por:</span>
+              <Select value={filter} onValueChange={(val) => setFilter(val as 'all' | AnalysisStatus)}>
+                <SelectTrigger className="w-[180px] bg-input border-border">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pendente">Pendentes</SelectItem>
+                  <SelectItem value="seguro">Seguros</SelectItem>
+                  <SelectItem value="vulneravel">Vulneráveis</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Table */}
+            {loadingData ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              </div>
+            ) : (
+              <SubmissionsTable submissions={submissions} onRefresh={fetchSubmissions} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="clients" className="mt-6">
+            <PartnersManager />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
