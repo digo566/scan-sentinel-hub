@@ -23,7 +23,7 @@ serve(async (req) => {
 
     // Create PIX payment using Mercado Pago API
     const paymentData = {
-      transaction_amount: 0.01,
+      transaction_amount: 20.00,
       description: `Teste de Segurança - SecScan: ${url}`,
       payment_method_id: "pix",
       payer: {
