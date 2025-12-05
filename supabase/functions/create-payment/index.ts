@@ -15,61 +15,75 @@ serve(async (req) => {
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
 
     if (!accessToken) {
-      throw new Error("MERCADO_PAGO_ACCESS_TOKEN not configured");
+      console.error("MERCADO_PAGO_ACCESS_TOKEN not configured");
+      throw new Error("Payment configuration error");
     }
 
-    const preference = {
-      items: [
-        {
-          title: "Teste de Segurança - SecScan",
-          description: `Análise de vulnerabilidades para: ${url}`,
-          quantity: 1,
-          currency_id: "BRL",
-          unit_price: 19.90,
-        },
-      ],
+    console.log("Creating PIX payment for:", { nome, email, url });
+
+    // Create PIX payment using Mercado Pago API
+    const paymentData = {
+      transaction_amount: 19.90,
+      description: `Teste de Segurança - SecScan: ${url}`,
+      payment_method_id: "pix",
       payer: {
-        name: nome,
         email: email,
+        first_name: nome.split(' ')[0],
+        last_name: nome.split(' ').slice(1).join(' ') || nome,
       },
-      back_urls: {
-        success: `${req.headers.get("origin")}/?payment=success`,
-        failure: `${req.headers.get("origin")}/?payment=failure`,
-        pending: `${req.headers.get("origin")}/?payment=pending`,
-      },
-      auto_return: "approved",
       external_reference: `${email}|${url}`,
     };
 
-    const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
+    console.log("Payment request data:", JSON.stringify(paymentData));
+
+    const response = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
+        "X-Idempotency-Key": `${Date.now()}-${email}-${url}`,
       },
-      body: JSON.stringify(preference),
+      body: JSON.stringify(paymentData),
     });
 
+    const responseText = await response.text();
+    console.log("Mercado Pago response status:", response.status);
+    console.log("Mercado Pago response:", responseText);
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Mercado Pago error:", errorText);
-      throw new Error("Failed to create payment preference");
+      console.error("Mercado Pago error:", responseText);
+      throw new Error(`Failed to create PIX payment: ${responseText}`);
     }
 
-    const data = await response.json();
+    const data = JSON.parse(responseText);
+
+    // Extract PIX data
+    const pixData = data.point_of_interaction?.transaction_data;
+    
+    if (!pixData) {
+      console.error("No PIX data in response:", data);
+      throw new Error("PIX data not available");
+    }
+
+    console.log("PIX payment created successfully:", {
+      payment_id: data.id,
+      status: data.status,
+    });
 
     return new Response(
       JSON.stringify({ 
-        init_point: data.init_point,
-        sandbox_init_point: data.sandbox_init_point,
-        id: data.id 
+        payment_id: data.id,
+        status: data.status,
+        qr_code: pixData.qr_code,
+        qr_code_base64: pixData.qr_code_base64,
+        ticket_url: pixData.ticket_url,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   } catch (error: unknown) {
-    console.error("Error creating payment:", error);
+    console.error("Error creating PIX payment:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       {

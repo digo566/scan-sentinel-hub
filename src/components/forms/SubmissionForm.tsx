@@ -10,7 +10,7 @@ import { Shield, CreditCard, CheckCircle, Loader2, User, ArrowLeft } from 'lucid
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
-import { MercadoPagoCheckout } from '@/components/payment/MercadoPagoCheckout';
+import { PixPayment } from '@/components/payment/PixPayment';
 
 const whatsappRegex = /^(\+55\s?)?\(?\d{2}\)?\s?\d{4,5}[-\s]?\d{4}$/;
 
@@ -33,8 +33,12 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
-  const [preferenceId, setPreferenceId] = useState<string | null>(null);
-  const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
+  const [pixData, setPixData] = useState<{
+    paymentId: string;
+    qrCode: string;
+    qrCodeBase64: string;
+  } | null>(null);
+  const [formData, setFormData] = useState<FormData | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -68,37 +72,12 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
     }
   }, [user, form]);
 
-  // Buscar chave pública do Mercado Pago
-  useEffect(() => {
-    const fetchPublicKey = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke('get-mp-public-key');
-        if (error) throw error;
-        if (data?.publicKey) {
-          setMpPublicKey(data.publicKey);
-        }
-      } catch (error) {
-        console.error('Error fetching MP public key:', error);
-      }
-    };
-    fetchPublicKey();
-  }, []);
-
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
+    setFormData(data);
+    
     try {
-      // Salva a submissão no banco com user_id se logado
-      const { error: dbError } = await supabase.from('submissions').insert({
-        nome: data.nome,
-        email: data.email,
-        url: data.url,
-        whatsapp: data.whatsapp,
-        user_id: user?.id || null,
-      });
-
-      if (dbError) throw dbError;
-
-      // Cria preferência de pagamento no Mercado Pago
+      // Cria pagamento PIX no Mercado Pago
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke('create-payment', {
         body: {
           nome: data.nome,
@@ -109,23 +88,20 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
 
       if (paymentError) throw paymentError;
 
-      // Mostrar checkout embutido
-      if (paymentData?.id && mpPublicKey) {
-        setPreferenceId(paymentData.id);
+      if (paymentData?.qr_code && paymentData?.qr_code_base64) {
+        setPixData({
+          paymentId: paymentData.payment_id,
+          qrCode: paymentData.qr_code,
+          qrCodeBase64: paymentData.qr_code_base64,
+        });
         setShowPayment(true);
       } else {
-        // Fallback para redirecionamento se não tiver chave pública
-        if (paymentData?.init_point) {
-          window.location.href = paymentData.init_point;
-        } else {
-          setIsSuccess(true);
-          onSuccess?.();
-        }
+        throw new Error('Dados PIX não disponíveis');
       }
     } catch (error) {
-      console.error('Error submitting:', error);
+      console.error('Error creating payment:', error);
       toast({
-        title: 'Erro ao processar',
+        title: 'Erro ao criar pagamento',
         description: 'Ocorreu um erro. Tente novamente.',
         variant: 'destructive',
       });
@@ -134,18 +110,42 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
     }
   };
 
-  const handlePaymentError = (error: string) => {
-    toast({
-      title: 'Erro no pagamento',
-      description: error,
-      variant: 'destructive',
-    });
-    setShowPayment(false);
+  const handlePaymentConfirmed = async () => {
+    if (!formData || !pixData) return;
+
+    try {
+      // Salva a submissão no banco apenas após pagamento confirmado
+      const { error: dbError } = await supabase.from('submissions').insert({
+        nome: formData.nome,
+        email: formData.email,
+        url: formData.url,
+        whatsapp: formData.whatsapp,
+        user_id: user?.id || null,
+        payment_status: 'approved',
+        payment_id: pixData.paymentId,
+      });
+
+      if (dbError) throw dbError;
+
+      setIsSuccess(true);
+      setShowPayment(false);
+      setPixData(null);
+      setFormData(null);
+      onSuccess?.();
+    } catch (error) {
+      console.error('Error saving submission:', error);
+      toast({
+        title: 'Erro ao salvar solicitação',
+        description: 'Pagamento confirmado, mas houve um erro ao salvar. Entre em contato.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleBackToForm = () => {
+  const handleCancelPayment = () => {
     setShowPayment(false);
-    setPreferenceId(null);
+    setPixData(null);
+    setFormData(null);
   };
 
   // Se não estiver logado, exigir login
@@ -179,13 +179,16 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
       <div className="glass rounded-xl p-8 text-center glow-pulse">
         <CheckCircle className="w-16 h-16 text-accent mx-auto mb-4" />
         <h3 className="font-orbitron text-2xl text-foreground mb-2">
-          Solicitação Recebida!
+          Pagamento Confirmado!
         </h3>
         <p className="text-muted-foreground mb-6">
-          Sua aplicação será analisada por nossa equipe. Entraremos em contato se necessário.
+          Sua solicitação foi registrada com sucesso. Nossa equipe analisará sua aplicação e entrará em contato.
         </p>
         <Button
-          onClick={() => setIsSuccess(false)}
+          onClick={() => {
+            setIsSuccess(false);
+            form.reset();
+          }}
           variant="outline"
           className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
         >
@@ -195,35 +198,17 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
     );
   }
 
-  // Mostrar checkout embutido
-  if (showPayment && preferenceId && mpPublicKey) {
+  // Mostrar pagamento PIX
+  if (showPayment && pixData) {
     return (
       <div className="glass rounded-xl p-8 border-glow">
-        <div className="flex items-center gap-3 mb-6">
-          <CreditCard className="w-8 h-8 text-primary" />
-          <h2 className="font-orbitron text-2xl text-foreground">
-            Pagamento
-          </h2>
-        </div>
-        
-        <p className="text-muted-foreground mb-6">
-          Complete o pagamento abaixo para finalizar sua solicitação.
-        </p>
-
-        <MercadoPagoCheckout
-          preferenceId={preferenceId}
-          publicKey={mpPublicKey}
-          onError={handlePaymentError}
+        <PixPayment
+          paymentId={pixData.paymentId}
+          qrCode={pixData.qrCode}
+          qrCodeBase64={pixData.qrCodeBase64}
+          onPaymentConfirmed={handlePaymentConfirmed}
+          onCancel={handleCancelPayment}
         />
-
-        <Button
-          onClick={handleBackToForm}
-          variant="ghost"
-          className="w-full mt-4 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Voltar ao formulário
-        </Button>
       </div>
     );
   }
@@ -243,7 +228,7 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
       
       <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 mb-6">
         <p className="text-accent font-semibold text-center">
-          💰 Valor: R$ 19,90
+          💰 Valor: R$ 19,90 (Pagamento via PIX)
         </p>
       </div>
 
@@ -330,12 +315,12 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Processando...
+                Gerando PIX...
               </>
             ) : (
               <>
                 <CreditCard className="w-4 h-4 mr-2" />
-                Pagar R$ 19,90 e Solicitar
+                Pagar R$ 19,90 via PIX
               </>
             )}
           </Button>

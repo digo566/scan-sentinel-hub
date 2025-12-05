@@ -50,6 +50,8 @@ export type Database = {
           email: string
           id: string
           nome: string
+          payment_id: string | null
+          payment_status: string | null
           status_analise: Database["public"]["Enums"]["analysis_status"]
           status_contato: Database["public"]["Enums"]["contact_status"]
           updated_at: string
@@ -62,6 +64,8 @@ export type Database = {
           email: string
           id?: string
           nome: string
+          payment_id?: string | null
+          payment_status?: string | null
           status_analise?: Database["public"]["Enums"]["analysis_status"]
           status_contato?: Database["public"]["Enums"]["contact_status"]
           updated_at?: string
@@ -74,6 +78,8 @@ export type Database = {
           email?: string
           id?: string
           nome?: string
+          payment_id?: string | null
+          payment_status?: string | null
           status_analise?: Database["public"]["Enums"]["analysis_status"]
           status_contato?: Database["public"]["Enums"]["contact_status"]
           updated_at?: string

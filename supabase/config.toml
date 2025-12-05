@@ -1,4 +1,13 @@
 project_id = "ovmfofuhnklrrviwsldt"
 
+[functions.create-payment]
+verify_jwt = false
+
+[functions.register-partner]
+verify_jwt = false
+
 [functions.get-mp-public-key]
+verify_jwt = false
+
+[functions.check-payment-status]
 verify_jwt = false

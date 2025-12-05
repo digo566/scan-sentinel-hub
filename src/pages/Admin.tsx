@@ -23,6 +23,8 @@ interface Submission {
   status_analise: AnalysisStatus;
   status_contato: ContactStatus;
   created_at: string;
+  payment_status?: string;
+  payment_id?: string;
 }
 
 const Admin = () => {
@@ -37,6 +39,7 @@ const Admin = () => {
       let query = supabase
         .from('submissions')
         .select('*')
+        .eq('payment_status', 'approved')
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {
