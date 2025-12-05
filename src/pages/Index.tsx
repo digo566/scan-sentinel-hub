@@ -22,15 +22,25 @@ const Index = () => {
               SecScan
             </span>
           </div>
-          <Link to="/admin">
-            <Button
-              variant="ghost"
-              className="text-muted-foreground hover:text-primary"
-            >
-              <Lock className="w-4 h-4 mr-2" />
-              Admin
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/auth">
+              <Button
+                variant="outline"
+                className="border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground"
+              >
+                <Lock className="w-4 h-4 mr-2" />
+                Área do Cliente
+              </Button>
+            </Link>
+            <Link to="/admin">
+              <Button
+                variant="ghost"
+                className="text-muted-foreground hover:text-primary"
+              >
+                Admin
+              </Button>
+            </Link>
+          </div>
         </div>
       </nav>
 
