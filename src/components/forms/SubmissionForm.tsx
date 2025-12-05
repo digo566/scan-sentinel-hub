@@ -6,10 +6,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Shield, CreditCard, CheckCircle, Loader2, User } from 'lucide-react';
+import { Shield, CreditCard, CheckCircle, Loader2, User, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
+import { MercadoPagoCheckout } from '@/components/payment/MercadoPagoCheckout';
 
 const whatsappRegex = /^(\+55\s?)?\(?\d{2}\)?\s?\d{4,5}[-\s]?\d{4}$/;
 
@@ -31,6 +32,9 @@ interface SubmissionFormProps {
 export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [preferenceId, setPreferenceId] = useState<string | null>(null);
+  const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -64,6 +68,22 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
     }
   }, [user, form]);
 
+  // Buscar chave pública do Mercado Pago
+  useEffect(() => {
+    const fetchPublicKey = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-mp-public-key');
+        if (error) throw error;
+        if (data?.publicKey) {
+          setMpPublicKey(data.publicKey);
+        }
+      } catch (error) {
+        console.error('Error fetching MP public key:', error);
+      }
+    };
+    fetchPublicKey();
+  }, []);
+
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
@@ -89,13 +109,18 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
 
       if (paymentError) throw paymentError;
 
-      // Redireciona para o checkout do Mercado Pago
-      if (paymentData?.init_point) {
-        window.location.href = paymentData.init_point;
+      // Mostrar checkout embutido
+      if (paymentData?.id && mpPublicKey) {
+        setPreferenceId(paymentData.id);
+        setShowPayment(true);
       } else {
-        // Se não houver pagamento, marca como sucesso
-        setIsSuccess(true);
-        onSuccess?.();
+        // Fallback para redirecionamento se não tiver chave pública
+        if (paymentData?.init_point) {
+          window.location.href = paymentData.init_point;
+        } else {
+          setIsSuccess(true);
+          onSuccess?.();
+        }
       }
     } catch (error) {
       console.error('Error submitting:', error);
@@ -104,8 +129,23 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
         description: 'Ocorreu um erro. Tente novamente.',
         variant: 'destructive',
       });
+    } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handlePaymentError = (error: string) => {
+    toast({
+      title: 'Erro no pagamento',
+      description: error,
+      variant: 'destructive',
+    });
+    setShowPayment(false);
+  };
+
+  const handleBackToForm = () => {
+    setShowPayment(false);
+    setPreferenceId(null);
   };
 
   // Se não estiver logado, exigir login
@@ -150,6 +190,39 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
           className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
         >
           Enviar outra URL
+        </Button>
+      </div>
+    );
+  }
+
+  // Mostrar checkout embutido
+  if (showPayment && preferenceId && mpPublicKey) {
+    return (
+      <div className="glass rounded-xl p-8 border-glow">
+        <div className="flex items-center gap-3 mb-6">
+          <CreditCard className="w-8 h-8 text-primary" />
+          <h2 className="font-orbitron text-2xl text-foreground">
+            Pagamento
+          </h2>
+        </div>
+        
+        <p className="text-muted-foreground mb-6">
+          Complete o pagamento abaixo para finalizar sua solicitação.
+        </p>
+
+        <MercadoPagoCheckout
+          preferenceId={preferenceId}
+          publicKey={mpPublicKey}
+          onError={handlePaymentError}
+        />
+
+        <Button
+          onClick={handleBackToForm}
+          variant="ghost"
+          className="w-full mt-4 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar ao formulário
         </Button>
       </div>
     );

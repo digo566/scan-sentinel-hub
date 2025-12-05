@@ -6,9 +6,32 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Loader2, Mail, Lock, User, Phone } from 'lucide-react';
+import { Shield, Loader2, Mail, Lock, User, Phone, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+
+// Validação de senha forte
+const validatePassword = (password: string): { valid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  if (password.length < 8) {
+    errors.push('Mínimo 8 caracteres');
+  }
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Uma letra maiúscula');
+  }
+  if (!/[a-z]/.test(password)) {
+    errors.push('Uma letra minúscula');
+  }
+  if (!/[0-9]/.test(password)) {
+    errors.push('Um número');
+  }
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    errors.push('Um caractere especial (!@#$%^&*...)');
+  }
+  
+  return { valid: errors.length === 0, errors };
+};
 
 export default function ClientAuth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -16,6 +39,7 @@ export default function ClientAuth() {
   const [password, setPassword] = useState('');
   const [nome, setNome] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -25,6 +49,13 @@ export default function ClientAuth() {
       navigate('/cliente');
     }
   }, [user, loading, navigate]);
+
+  // Validar senha em tempo real no cadastro
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    const { errors } = validatePassword(value);
+    setPasswordErrors(errors);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +88,19 @@ export default function ClientAuth() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar senha forte antes de enviar
+    const { valid, errors } = validatePassword(password);
+    if (!valid) {
+      setPasswordErrors(errors);
+      toast({
+        title: 'Senha fraca',
+        description: 'Por favor, crie uma senha mais segura.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
@@ -242,14 +286,32 @@ export default function ClientAuth() {
                     <Input
                       id="signup-password"
                       type="password"
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder="Senha forte"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 bg-input border-border"
+                      onChange={(e) => handlePasswordChange(e.target.value)}
+                      className={`pl-10 bg-input border-border ${passwordErrors.length > 0 && password ? 'border-destructive' : ''}`}
                       required
-                      minLength={6}
+                      minLength={8}
                     />
                   </div>
+                  {password && passwordErrors.length > 0 && (
+                    <div className="bg-destructive/10 border border-destructive/30 rounded-md p-2 mt-2">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+                        <div className="text-xs text-destructive space-y-1">
+                          <p className="font-medium">A senha precisa ter:</p>
+                          <ul className="list-disc list-inside">
+                            {passwordErrors.map((err, i) => (
+                              <li key={i}>{err}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {password && passwordErrors.length === 0 && (
+                    <p className="text-xs text-accent mt-1">✓ Senha forte</p>
+                  )}
                 </div>
                 
                 <Button
