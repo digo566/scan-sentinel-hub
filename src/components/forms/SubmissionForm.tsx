@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Shield, Send, CheckCircle, Loader2 } from 'lucide-react';
+import { Shield, CreditCard, CheckCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const whatsappRegex = /^(\+55\s?)?\(?\d{2}\)?\s?\d{4,5}[-\s]?\d{4}$/;
@@ -40,29 +40,40 @@ export function SubmissionForm() {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from('submissions').insert({
+      // Primeiro salva a submissão no banco
+      const { error: dbError } = await supabase.from('submissions').insert({
         nome: data.nome,
         email: data.email,
         url: data.url,
         whatsapp: data.whatsapp,
       });
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
-      setIsSuccess(true);
-      form.reset();
-      toast({
-        title: 'Solicitação enviada!',
-        description: 'Sua URL foi recebida e será analisada em breve.',
+      // Cria preferência de pagamento no Mercado Pago
+      const { data: paymentData, error: paymentError } = await supabase.functions.invoke('create-payment', {
+        body: {
+          nome: data.nome,
+          email: data.email,
+          url: data.url,
+        },
       });
+
+      if (paymentError) throw paymentError;
+
+      // Redireciona para o checkout do Mercado Pago
+      if (paymentData?.init_point) {
+        window.location.href = paymentData.init_point;
+      } else {
+        throw new Error('URL de pagamento não recebida');
+      }
     } catch (error) {
       console.error('Error submitting:', error);
       toast({
-        title: 'Erro ao enviar',
+        title: 'Erro ao processar',
         description: 'Ocorreu um erro. Tente novamente.',
         variant: 'destructive',
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -97,9 +108,15 @@ export function SubmissionForm() {
         </h2>
       </div>
       
-      <p className="text-muted-foreground mb-6">
+      <p className="text-muted-foreground mb-4">
         Preencha os dados abaixo para solicitar uma análise de vulnerabilidades da sua aplicação.
       </p>
+      
+      <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 mb-6">
+        <p className="text-accent font-semibold text-center">
+          💰 Valor: R$ 19,90
+        </p>
+      </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
@@ -179,17 +196,17 @@ export function SubmissionForm() {
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-orbitron glow-pulse"
+            className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-orbitron glow-pulse"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Enviando...
+                Processando...
               </>
             ) : (
               <>
-                <Send className="w-4 h-4 mr-2" />
-                Solicitar Análise
+                <CreditCard className="w-4 h-4 mr-2" />
+                Pagar R$ 19,90 e Solicitar
               </>
             )}
           </Button>
