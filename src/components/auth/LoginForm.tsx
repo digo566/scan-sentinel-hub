@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Shield, Loader2, LogIn, UserPlus } from 'lucide-react';
+import { Shield, Loader2, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
@@ -17,9 +17,8 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export function LoginForm() {
-  const [isLogin, setIsLogin] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
   const { toast } = useToast();
 
   const form = useForm<FormData>({
@@ -33,22 +32,14 @@ export function LoginForm() {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
-      const { error } = isLogin
-        ? await signIn(data.email, data.password)
-        : await signUp(data.email, data.password);
+      const { error } = await signIn(data.email, data.password);
 
       if (error) {
         toast({
-          title: isLogin ? 'Erro ao entrar' : 'Erro ao cadastrar',
-          description: error.message,
+          title: 'Erro ao entrar',
+          description: 'E-mail ou senha incorretos.',
           variant: 'destructive',
         });
-      } else if (!isLogin) {
-        toast({
-          title: 'Conta criada!',
-          description: 'Você já pode fazer login.',
-        });
-        setIsLogin(true);
       }
     } catch (err) {
       toast({
@@ -73,7 +64,7 @@ export function LoginForm() {
           </div>
 
           <h2 className="font-orbitron text-xl text-center text-foreground mb-6">
-            {isLogin ? 'Acesso Administrativo' : 'Criar Conta Admin'}
+            Acesso Administrativo
           </h2>
 
           <Form {...form}>
@@ -124,37 +115,20 @@ export function LoginForm() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {isLogin ? 'Entrando...' : 'Criando...'}
-                  </>
-                ) : isLogin ? (
-                  <>
-                    <LogIn className="w-4 h-4 mr-2" />
-                    Entrar
+                    Entrando...
                   </>
                 ) : (
                   <>
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Criar Conta
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Entrar
                   </>
                 )}
               </Button>
             </form>
           </Form>
 
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              {isLogin
-                ? 'Primeiro acesso? Crie uma conta'
-                : 'Já tem conta? Faça login'}
-            </button>
-          </div>
-
-          <p className="mt-4 text-xs text-center text-muted-foreground">
-            A primeira conta criada será automaticamente administradora.
+          <p className="mt-6 text-xs text-center text-muted-foreground">
+            Acesso restrito a administradores autorizados.
           </p>
         </div>
       </div>
