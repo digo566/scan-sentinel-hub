@@ -102,6 +102,32 @@ export function SubmissionForm() {
     }
   };
 
+  // Se não estiver logado, exigir login
+  if (!user) {
+    return (
+      <div className="glass rounded-xl p-8 text-center border-glow">
+        <Shield className="w-16 h-16 text-primary mx-auto mb-4" />
+        <h3 className="font-orbitron text-2xl text-foreground mb-2">
+          Faça Login para Continuar
+        </h3>
+        <p className="text-muted-foreground mb-6">
+          Você precisa estar cadastrado para solicitar uma análise de segurança.
+        </p>
+        <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 mb-6">
+          <p className="text-accent font-semibold text-center">
+            💰 Valor: R$ 19,90
+          </p>
+        </div>
+        <Link to="/auth">
+          <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <User className="w-4 h-4 mr-2" />
+            Criar Conta / Entrar
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
   if (isSuccess) {
     return (
       <div className="glass rounded-xl p-8 text-center glow-pulse">
@@ -135,18 +161,6 @@ export function SubmissionForm() {
       <p className="text-muted-foreground mb-4">
         Preencha os dados abaixo para solicitar uma análise de vulnerabilidades da sua aplicação.
       </p>
-      
-      {!user && (
-        <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 mb-4">
-          <p className="text-sm text-center">
-            <Link to="/auth" className="text-primary hover:underline font-medium">
-              <User className="w-4 h-4 inline mr-1" />
-              Faça login
-            </Link>{' '}
-            para acompanhar seus pedidos
-          </p>
-        </div>
-      )}
       
       <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 mb-6">
         <p className="text-accent font-semibold text-center">
