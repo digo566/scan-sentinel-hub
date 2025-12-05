@@ -1,7 +1,6 @@
 import { CyberScene } from '@/components/3d/CyberScene';
-import { SubmissionForm } from '@/components/forms/SubmissionForm';
 import { VulnerabilityShowcase } from '@/components/sections/VulnerabilityShowcase';
-import { Shield, Lock, Eye, Zap } from 'lucide-react';
+import { Shield, Lock, Eye, Zap, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -47,54 +46,69 @@ const Index = () => {
       {/* Main Content */}
       <main className="relative z-10 min-h-screen flex items-center">
         <div className="container mx-auto px-6 py-24">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left - Hero Content */}
-            <div className="text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-6">
-                <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                <span className="text-sm text-muted-foreground font-rajdhani">
-                  Proteção Cibernética Avançada
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-6">
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+              <span className="text-sm text-muted-foreground font-rajdhani">
+                Proteção Cibernética Avançada
+              </span>
+            </div>
+            
+            <h1 className="font-orbitron text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
+              <span className="text-glow">Proteja</span> sua{' '}
+              <span className="text-secondary">Aplicação</span>{' '}
+              contra{' '}
+              <span className="text-destructive">Ameaças</span>
+            </h1>
+            
+            <p className="text-lg text-muted-foreground mb-8 font-rajdhani max-w-xl mx-auto">
+              Nossa equipe especializada analisa sua aplicação em busca de vulnerabilidades 
+              de segurança. Receba um relatório completo e proteção proativa.
+            </p>
+
+            {/* Features */}
+            <div className="grid sm:grid-cols-3 gap-4 mb-10">
+              <div className="glass rounded-lg p-4 text-center">
+                <Eye className="w-6 h-6 text-primary mx-auto mb-2" />
+                <span className="text-sm text-foreground font-rajdhani">
+                  Análise Manual
                 </span>
               </div>
-              
-              <h1 className="font-orbitron text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
-                <span className="text-glow">Proteja</span> sua{' '}
-                <span className="text-secondary">Aplicação</span>{' '}
-                contra{' '}
-                <span className="text-destructive">Ameaças</span>
-              </h1>
-              
-              <p className="text-lg text-muted-foreground mb-8 font-rajdhani max-w-xl">
-                Nossa equipe especializada analisa sua aplicação em busca de vulnerabilidades 
-                de segurança. Receba um relatório completo e proteção proativa.
-              </p>
-
-              {/* Features */}
-              <div className="grid sm:grid-cols-3 gap-4 mb-8">
-                <div className="glass rounded-lg p-4 text-center">
-                  <Eye className="w-6 h-6 text-primary mx-auto mb-2" />
-                  <span className="text-sm text-foreground font-rajdhani">
-                    Análise Manual
-                  </span>
-                </div>
-                <div className="glass rounded-lg p-4 text-center">
-                  <Shield className="w-6 h-6 text-accent mx-auto mb-2" />
-                  <span className="text-sm text-foreground font-rajdhani">
-                    Equipe Expert
-                  </span>
-                </div>
-                <div className="glass rounded-lg p-4 text-center">
-                  <Zap className="w-6 h-6 text-secondary mx-auto mb-2" />
-                  <span className="text-sm text-foreground font-rajdhani">
-                    Contato Direto
-                  </span>
-                </div>
+              <div className="glass rounded-lg p-4 text-center">
+                <Shield className="w-6 h-6 text-accent mx-auto mb-2" />
+                <span className="text-sm text-foreground font-rajdhani">
+                  Equipe Expert
+                </span>
+              </div>
+              <div className="glass rounded-lg p-4 text-center">
+                <Zap className="w-6 h-6 text-secondary mx-auto mb-2" />
+                <span className="text-sm text-foreground font-rajdhani">
+                  Contato Direto
+                </span>
               </div>
             </div>
 
-            {/* Right - Form */}
-            <div className="lg:pl-8">
-              <SubmissionForm />
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link to="/auth">
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-rajdhani text-lg px-8"
+                >
+                  Começar Agora
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
+              <Link to="/auth">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full sm:w-auto border-primary/50 text-primary hover:bg-primary/10 font-rajdhani text-lg px-8"
+                >
+                  <Lock className="w-5 h-5 mr-2" />
+                  Fazer Login
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
