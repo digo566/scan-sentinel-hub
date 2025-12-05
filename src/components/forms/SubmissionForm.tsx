@@ -24,7 +24,11 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export function SubmissionForm() {
+interface SubmissionFormProps {
+  onSuccess?: () => void;
+}
+
+export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
@@ -89,7 +93,9 @@ export function SubmissionForm() {
       if (paymentData?.init_point) {
         window.location.href = paymentData.init_point;
       } else {
-        throw new Error('URL de pagamento não recebida');
+        // Se não houver pagamento, marca como sucesso
+        setIsSuccess(true);
+        onSuccess?.();
       }
     } catch (error) {
       console.error('Error submitting:', error);
