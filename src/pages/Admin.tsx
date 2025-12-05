@@ -4,11 +4,12 @@ import { LoginForm } from '@/components/auth/LoginForm';
 import { SubmissionsTable } from '@/components/admin/SubmissionsTable';
 import { StatsCards } from '@/components/admin/StatsCards';
 import { PartnersManager } from '@/components/admin/PartnersManager';
+import { RemarketingTable } from '@/components/admin/RemarketingTable';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, LogOut, Home, Loader2, AlertTriangle, FileText, Users } from 'lucide-react';
+import { Shield, LogOut, Home, Loader2, AlertTriangle, FileText, Users, Target } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 type AnalysisStatus = 'pendente' | 'seguro' | 'vulneravel';
@@ -27,10 +28,22 @@ interface Submission {
   payment_id?: string;
 }
 
+interface AbandonedSubmission {
+  id: string;
+  nome: string;
+  email: string;
+  url: string;
+  whatsapp: string;
+  payment_status: string | null;
+  created_at: string;
+}
+
 const Admin = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [abandonedSubmissions, setAbandonedSubmissions] = useState<AbandonedSubmission[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [loadingAbandoned, setLoadingAbandoned] = useState(true);
   const [filter, setFilter] = useState<'all' | AnalysisStatus>('all');
 
   const fetchSubmissions = async () => {
@@ -57,9 +70,28 @@ const Admin = () => {
     }
   };
 
+  const fetchAbandonedSubmissions = async () => {
+    setLoadingAbandoned(true);
+    try {
+      const { data, error } = await supabase
+        .from('submissions')
+        .select('id, nome, email, url, whatsapp, payment_status, created_at')
+        .or('payment_status.neq.approved,payment_status.is.null')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAbandonedSubmissions((data as AbandonedSubmission[]) || []);
+    } catch (error) {
+      console.error('Error fetching abandoned submissions:', error);
+    } finally {
+      setLoadingAbandoned(false);
+    }
+  };
+
   useEffect(() => {
     if (user && isAdmin) {
       fetchSubmissions();
+      fetchAbandonedSubmissions();
     }
   }, [user, isAdmin, filter]);
 
@@ -142,10 +174,14 @@ const Admin = () => {
         <StatsCards {...stats} />
 
         <Tabs defaultValue="submissions" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsList className="grid w-full grid-cols-3 max-w-xl">
             <TabsTrigger value="submissions" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Pedidos
+            </TabsTrigger>
+            <TabsTrigger value="remarketing" className="flex items-center gap-2">
+              <Target className="w-4 h-4" />
+              Remarketing ({abandonedSubmissions.length})
             </TabsTrigger>
             <TabsTrigger value="clients" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -177,6 +213,16 @@ const Admin = () => {
               </div>
             ) : (
               <SubmissionsTable submissions={submissions} onRefresh={fetchSubmissions} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="remarketing" className="mt-6">
+            {loadingAbandoned ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              </div>
+            ) : (
+              <RemarketingTable submissions={abandonedSubmissions} onRefresh={fetchAbandonedSubmissions} />
             )}
           </TabsContent>
 
