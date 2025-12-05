@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,8 +6,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Shield, CreditCard, CheckCircle, Loader2 } from 'lucide-react';
+import { Shield, CreditCard, CheckCircle, Loader2, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { Link } from 'react-router-dom';
 
 const whatsappRegex = /^(\+55\s?)?\(?\d{2}\)?\s?\d{4,5}[-\s]?\d{4}$/;
 
@@ -26,6 +28,7 @@ export function SubmissionForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -37,15 +40,36 @@ export function SubmissionForm() {
     },
   });
 
+  // Preencher campos se usuário estiver logado
+  useEffect(() => {
+    if (user) {
+      const fetchProfile = async () => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('nome, email, whatsapp')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (data) {
+          if (data.nome) form.setValue('nome', data.nome);
+          if (data.email) form.setValue('email', data.email);
+          if (data.whatsapp) form.setValue('whatsapp', data.whatsapp);
+        }
+      };
+      fetchProfile();
+    }
+  }, [user, form]);
+
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
-      // Primeiro salva a submissão no banco
+      // Salva a submissão no banco com user_id se logado
       const { error: dbError } = await supabase.from('submissions').insert({
         nome: data.nome,
         email: data.email,
         url: data.url,
         whatsapp: data.whatsapp,
+        user_id: user?.id || null,
       });
 
       if (dbError) throw dbError;
@@ -111,6 +135,18 @@ export function SubmissionForm() {
       <p className="text-muted-foreground mb-4">
         Preencha os dados abaixo para solicitar uma análise de vulnerabilidades da sua aplicação.
       </p>
+      
+      {!user && (
+        <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 mb-4">
+          <p className="text-sm text-center">
+            <Link to="/auth" className="text-primary hover:underline font-medium">
+              <User className="w-4 h-4 inline mr-1" />
+              Faça login
+            </Link>{' '}
+            para acompanhar seus pedidos
+          </p>
+        </div>
+      )}
       
       <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 mb-6">
         <p className="text-accent font-semibold text-center">

@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nome: string | null
+          updated_at: string
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          updated_at?: string
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       submissions: {
         Row: {
           created_at: string
@@ -24,6 +54,7 @@ export type Database = {
           status_contato: Database["public"]["Enums"]["contact_status"]
           updated_at: string
           url: string
+          user_id: string | null
           whatsapp: string
         }
         Insert: {
@@ -35,6 +66,7 @@ export type Database = {
           status_contato?: Database["public"]["Enums"]["contact_status"]
           updated_at?: string
           url: string
+          user_id?: string | null
           whatsapp: string
         }
         Update: {
@@ -46,6 +78,7 @@ export type Database = {
           status_contato?: Database["public"]["Enums"]["contact_status"]
           updated_at?: string
           url?: string
+          user_id?: string | null
           whatsapp?: string
         }
         Relationships: []
