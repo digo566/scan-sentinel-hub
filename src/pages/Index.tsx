@@ -1,16 +1,20 @@
 import { CyberScene } from '@/components/3d/CyberScene';
 import { SubmissionForm } from '@/components/forms/SubmissionForm';
+import { VulnerabilityShowcase } from '@/components/sections/VulnerabilityShowcase';
 import { Shield, Lock, Eye, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      <CyberScene />
+    <div className="bg-background relative">
+      {/* Fixed 3D Background */}
+      <div className="fixed inset-0 z-0">
+        <CyberScene />
+      </div>
       
       {/* Navigation */}
-      <nav className="absolute top-0 left-0 right-0 z-20 p-6">
+      <nav className="fixed top-0 left-0 right-0 z-20 p-6">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Shield className="w-8 h-8 text-primary" />
@@ -86,8 +90,11 @@ const Index = () => {
         </div>
       </main>
 
+      {/* Vulnerability Showcase Section */}
+      <VulnerabilityShowcase />
+
       {/* Footer */}
-      <footer className="absolute bottom-0 left-0 right-0 z-10 p-6 text-center">
+      <footer className="relative z-10 p-6 text-center bg-background/80">
         <p className="text-sm text-muted-foreground font-rajdhani">
           © 2024 SecScan - Segurança Cibernética Profissional
         </p>
