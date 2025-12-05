@@ -161,7 +161,7 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
         </p>
         <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 mb-6">
           <p className="text-accent font-semibold text-center">
-            💰 Valor: R$ 0,01
+            💰 Valor: R$ 20,00
           </p>
         </div>
         <Link to="/auth">
@@ -228,7 +228,7 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
       
       <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 mb-6">
         <p className="text-accent font-semibold text-center">
-          💰 Valor: R$ 0,01 (Pagamento via PIX)
+          💰 Valor: R$ 20,00 (Pagamento via PIX)
         </p>
       </div>
 
@@ -320,7 +320,7 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
             ) : (
               <>
                 <CreditCard className="w-4 h-4 mr-2" />
-                Pagar R$ 0,01 via PIX
+                Pagar R$ 20,00 via PIX
               </>
             )}
           </Button>
