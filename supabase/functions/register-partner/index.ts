@@ -17,9 +17,14 @@ serve(async (req) => {
       throw new Error("Missing authorization header");
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+    if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
+      console.error("Missing env vars:", { supabaseUrl: !!supabaseUrl, supabaseServiceKey: !!supabaseServiceKey, supabaseAnonKey: !!supabaseAnonKey });
+      throw new Error("Server configuration error");
+    }
 
     // Client para verificar se o requisitante é admin
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
