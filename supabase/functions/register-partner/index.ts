@@ -14,51 +14,66 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("Missing authorization header");
       throw new Error("Missing authorization header");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-    if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
-      console.error("Missing env vars:", { supabaseUrl: !!supabaseUrl, supabaseServiceKey: !!supabaseServiceKey, supabaseAnonKey: !!supabaseAnonKey });
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing env vars:", { supabaseUrl: !!supabaseUrl, supabaseServiceKey: !!supabaseServiceKey });
       throw new Error("Server configuration error");
     }
 
-    // Client para verificar se o requisitante é admin
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Use service role client to verify the user
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verificar se o usuário é admin
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
+    // Extract JWT token from header
+    const token = authHeader.replace("Bearer ", "");
+    
+    // Verify the user using the token
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError) {
+      console.error("Auth error:", authError);
+      throw new Error("Invalid token");
+    }
+    
+    if (!user) {
+      console.error("No user found from token");
       throw new Error("Unauthorized");
     }
 
-    const { data: roleData } = await supabaseClient
+    console.log("User verified:", user.id);
+
+    // Check if user is admin
+    const { data: roleData, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .eq("role", "admin")
       .single();
 
+    if (roleError) {
+      console.error("Role error:", roleError);
+    }
+
     if (!roleData) {
+      console.error("User is not admin");
       throw new Error("Only admins can register partners");
     }
 
-    // Pegar dados do novo parceiro
+    console.log("Admin verified, creating partner...");
+
+    // Get partner data
     const { email, password, nome, whatsapp } = await req.json();
 
     if (!email || !password || !nome) {
       throw new Error("Email, password and nome are required");
     }
 
-    // Admin client para criar usuário
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Criar o usuário
+    // Create the new user
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -66,20 +81,33 @@ serve(async (req) => {
     });
 
     if (createError) {
+      console.error("Create user error:", createError);
       throw new Error(createError.message);
     }
 
-    // Atualizar perfil com nome e whatsapp
-    await supabaseAdmin
+    console.log("User created:", newUser.user.id);
+
+    // Update profile with name and whatsapp
+    const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .update({ nome, whatsapp })
       .eq("user_id", newUser.user.id);
 
-    // Adicionar role de admin
-    await supabaseAdmin
+    if (profileError) {
+      console.error("Profile update error:", profileError);
+    }
+
+    // Update role to admin
+    const { error: roleUpdateError } = await supabaseAdmin
       .from("user_roles")
       .update({ role: "admin" })
       .eq("user_id", newUser.user.id);
+
+    if (roleUpdateError) {
+      console.error("Role update error:", roleUpdateError);
+    }
+
+    console.log("Partner registered successfully");
 
     return new Response(
       JSON.stringify({ success: true, user_id: newUser.user.id }),
