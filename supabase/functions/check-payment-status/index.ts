@@ -45,6 +45,7 @@ serve(async (req) => {
       payment_id: data.id,
       status: data.status,
       status_detail: data.status_detail,
+      cliente_url: cliente_url,
     });
 
     // Se o pagamento foi aprovado, enviar webhook
