@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { nome, email, url } = await req.json();
+    const { nome, email, url, whatsapp, valor, cupom } = await req.json();
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
 
     if (!accessToken) {
@@ -19,11 +19,14 @@ serve(async (req) => {
       throw new Error("Payment configuration error");
     }
 
-    console.log("Creating PIX payment for:", { nome, email, url });
+    // Valor padrão é 20, com cupom é 10
+    const transactionAmount = valor || 20;
+
+    console.log("Creating PIX payment for:", { nome, email, url, valor: transactionAmount, cupom });
 
     // Create PIX payment using Mercado Pago API
     const paymentData = {
-      transaction_amount: 20.00,
+      transaction_amount: transactionAmount,
       description: `Teste de Segurança - SecScan: ${url}`,
       payment_method_id: "pix",
       payer: {
@@ -31,7 +34,13 @@ serve(async (req) => {
         first_name: nome.split(' ')[0],
         last_name: nome.split(' ').slice(1).join(' ') || nome,
       },
-      external_reference: `${email}|${url}`,
+      external_reference: JSON.stringify({
+        email,
+        url,
+        whatsapp,
+        cupom: cupom || null,
+        valor: transactionAmount,
+      }),
     };
 
     console.log("Payment request data:", JSON.stringify(paymentData));
@@ -68,6 +77,8 @@ serve(async (req) => {
     console.log("PIX payment created successfully:", {
       payment_id: data.id,
       status: data.status,
+      valor: transactionAmount,
+      cupom: cupom || null,
     });
 
     return new Response(
@@ -77,6 +88,8 @@ serve(async (req) => {
         qr_code: pixData.qr_code,
         qr_code_base64: pixData.qr_code_base64,
         ticket_url: pixData.ticket_url,
+        valor: transactionAmount,
+        cupom: cupom || null,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

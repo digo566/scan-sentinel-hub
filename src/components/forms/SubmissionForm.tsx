@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Shield, CreditCard, CheckCircle, Loader2, User, ArrowLeft } from 'lucide-react';
+import { Shield, CreditCard, CheckCircle, Loader2, User, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
@@ -21,6 +21,7 @@ const formSchema = z.object({
   whatsapp: z.string()
     .regex(whatsappRegex, 'WhatsApp inválido. Use formato: (11) 99999-9999')
     .transform(val => val.replace(/\D/g, '')),
+  cupom: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -28,6 +29,10 @@ type FormData = z.infer<typeof formSchema>;
 interface SubmissionFormProps {
   onSuccess?: () => void;
 }
+
+const PRECO_ORIGINAL = 20;
+const CUPOM_VALIDO = 'cupom10';
+const DESCONTO_CUPOM = 10;
 
 export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,6 +44,8 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
     qrCodeBase64: string;
   } | null>(null);
   const [formData, setFormData] = useState<FormData | null>(null);
+  const [cupomAplicado, setCupomAplicado] = useState(false);
+  const [precoFinal, setPrecoFinal] = useState(PRECO_ORIGINAL);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -49,8 +56,22 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
       email: '',
       url: '',
       whatsapp: '',
+      cupom: '',
     },
   });
+
+  const cupomValue = form.watch('cupom');
+
+  // Verificar cupom
+  useEffect(() => {
+    if (cupomValue?.toLowerCase() === CUPOM_VALIDO) {
+      setCupomAplicado(true);
+      setPrecoFinal(PRECO_ORIGINAL - DESCONTO_CUPOM);
+    } else {
+      setCupomAplicado(false);
+      setPrecoFinal(PRECO_ORIGINAL);
+    }
+  }, [cupomValue]);
 
   // Preencher campos se usuário estiver logado
   useEffect(() => {
@@ -83,6 +104,9 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
           nome: data.nome,
           email: data.email,
           url: data.url,
+          whatsapp: data.whatsapp,
+          valor: precoFinal,
+          cupom: cupomAplicado ? CUPOM_VALIDO : null,
         },
       });
 
@@ -161,7 +185,7 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
         </p>
         <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 mb-6">
           <p className="text-accent font-semibold text-center">
-            💰 Valor: R$ 20,00
+            💰 Valor: R$ {PRECO_ORIGINAL},00
           </p>
         </div>
         <Link to="/auth">
@@ -199,13 +223,17 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
   }
 
   // Mostrar pagamento PIX
-  if (showPayment && pixData) {
+  if (showPayment && pixData && formData) {
     return (
       <div className="glass rounded-xl p-8 border-glow">
         <PixPayment
           paymentId={pixData.paymentId}
           qrCode={pixData.qrCode}
           qrCodeBase64={pixData.qrCodeBase64}
+          valor={precoFinal}
+          cupomUsado={cupomAplicado}
+          clienteNome={formData.nome}
+          clienteWhatsapp={formData.whatsapp}
           onPaymentConfirmed={handlePaymentConfirmed}
           onCancel={handleCancelPayment}
         />
@@ -227,9 +255,22 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
       </p>
       
       <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 mb-6">
-        <p className="text-accent font-semibold text-center">
-          💰 Valor: R$ 20,00 (Pagamento via PIX)
-        </p>
+        <div className="text-center">
+          {cupomAplicado ? (
+            <>
+              <p className="text-muted-foreground line-through text-sm">
+                De R$ {PRECO_ORIGINAL},00
+              </p>
+              <p className="text-accent font-semibold text-lg">
+                💰 Por R$ {precoFinal},00 (Cupom aplicado!)
+              </p>
+            </>
+          ) : (
+            <p className="text-accent font-semibold">
+              💰 Valor: R$ {PRECO_ORIGINAL},00 (Pagamento via PIX)
+            </p>
+          )}
+        </div>
       </div>
 
       <Form {...form}>
@@ -307,6 +348,32 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
             )}
           />
 
+          <FormField
+            control={form.control}
+            name="cupom"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-foreground flex items-center gap-2">
+                  <Tag className="w-4 h-4" />
+                  Cupom de Desconto (opcional)
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Digite seu cupom"
+                    className={`bg-input border-border focus:border-primary ${
+                      cupomAplicado ? 'border-accent text-accent' : ''
+                    }`}
+                    {...field}
+                  />
+                </FormControl>
+                {cupomAplicado && (
+                  <p className="text-accent text-sm">✓ Cupom válido! Desconto de R$ {DESCONTO_CUPOM},00</p>
+                )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <Button
             type="submit"
             disabled={isSubmitting}
@@ -320,7 +387,7 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
             ) : (
               <>
                 <CreditCard className="w-4 h-4 mr-2" />
-                Pagar R$ 20,00 via PIX
+                Pagar R$ {precoFinal},00 via PIX
               </>
             )}
           </Button>
