@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Shield, Loader2, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -95,8 +96,7 @@ export function LoginForm() {
                   <FormItem>
                     <FormLabel className="text-foreground">Senha</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
+                      <PasswordInput
                         placeholder="••••••••"
                         className="bg-input border-border focus:border-primary"
                         {...field}
