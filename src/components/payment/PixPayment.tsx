@@ -97,6 +97,9 @@ export function PixPayment({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Ref para evitar envio duplo do webhook de confirmação
+  const paymentConfirmedRef = useRef(false);
+
   // Auto-check payment status every 5 seconds
   useEffect(() => {
     if (expired) return;
@@ -104,7 +107,13 @@ export function PixPayment({
     const checkStatus = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('check-payment-status', {
-          body: { payment_id: paymentId }
+          body: { 
+            payment_id: paymentId,
+            cliente_nome: clienteNome,
+            cliente_whatsapp: clienteWhatsapp,
+            valor: valor,
+            cupom_usado: cupomUsado
+          }
         });
 
         if (error) {
@@ -115,7 +124,8 @@ export function PixPayment({
         console.log('Payment status check:', data);
         setStatus(data.status);
 
-        if (data.status === 'approved') {
+        if (data.status === 'approved' && !paymentConfirmedRef.current) {
+          paymentConfirmedRef.current = true;
           toast.success('Pagamento confirmado!');
           onPaymentConfirmed();
         }
@@ -131,7 +141,7 @@ export function PixPayment({
     const interval = setInterval(checkStatus, 5000);
 
     return () => clearInterval(interval);
-  }, [paymentId, onPaymentConfirmed, expired]);
+  }, [paymentId, onPaymentConfirmed, expired, clienteNome, clienteWhatsapp, valor, cupomUsado]);
 
   const copyToClipboard = async () => {
     try {
@@ -148,19 +158,26 @@ export function PixPayment({
     setChecking(true);
     try {
       const { data, error } = await supabase.functions.invoke('check-payment-status', {
-        body: { payment_id: paymentId }
+        body: { 
+          payment_id: paymentId,
+          cliente_nome: clienteNome,
+          cliente_whatsapp: clienteWhatsapp,
+          valor: valor,
+          cupom_usado: cupomUsado
+        }
       });
 
       if (error) throw error;
 
       setStatus(data.status);
 
-      if (data.status === 'approved') {
+      if (data.status === 'approved' && !paymentConfirmedRef.current) {
+        paymentConfirmedRef.current = true;
         toast.success('Pagamento confirmado!');
         onPaymentConfirmed();
       } else if (data.status === 'pending') {
         toast.info('Aguardando pagamento...');
-      } else {
+      } else if (data.status !== 'approved') {
         toast.error(`Status: ${data.status}`);
       }
     } catch (err) {
