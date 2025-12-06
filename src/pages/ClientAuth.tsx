@@ -181,11 +181,13 @@ export default function ClientAuth() {
       const data = response.data;
       if (data?.error) throw new Error(data.error);
 
+      // Avançar para o step de código
+      setRecoveryStep('code');
+      
       toast({
         title: 'Código enviado!',
         description: 'Se o e-mail estiver cadastrado, você receberá um código via WhatsApp.',
       });
-      setRecoveryStep('code');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erro ao solicitar recuperação';
       toast({
