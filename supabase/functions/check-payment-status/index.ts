@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { payment_id, cliente_nome, cliente_whatsapp, valor, cupom_usado } = await req.json();
+    const { payment_id, cliente_nome, cliente_whatsapp, cliente_url, valor, cupom_usado, cupom_nome } = await req.json();
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
 
     if (!accessToken) {
@@ -56,8 +56,10 @@ serve(async (req) => {
           tipo: "pagamento_confirmado",
           nome: cliente_nome,
           whatsapp: cliente_whatsapp,
+          url: cliente_url,
           valor: valor,
           cupom_utilizado: cupom_usado,
+          cupom_nome: cupom_nome,
           payment_id: data.id,
           status: data.status,
           timestamp: new Date().toISOString(),
