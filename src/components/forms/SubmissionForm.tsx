@@ -31,8 +31,12 @@ interface SubmissionFormProps {
 }
 
 const PRECO_ORIGINAL = 20;
-const CUPOM_VALIDO = 'cupom10';
-const DESCONTO_CUPOM = 10;
+
+// Cupons válidos e seus descontos
+const CUPONS: Record<string, number> = {
+  'cupom10': 10,    // R$ 10 de desconto (preço final: R$ 10,00)
+  '10c': 19.90,     // R$ 19,90 de desconto (preço final: R$ 0,10)
+};
 
 export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,13 +66,23 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
 
   const cupomValue = form.watch('cupom');
 
+  const [cupomNome, setCupomNome] = useState<string | null>(null);
+  const [desconto, setDesconto] = useState(0);
+
   // Verificar cupom
   useEffect(() => {
-    if (cupomValue?.toLowerCase() === CUPOM_VALIDO) {
+    const cupomLower = cupomValue?.toLowerCase() || '';
+    const descontoCupom = CUPONS[cupomLower];
+    
+    if (descontoCupom !== undefined) {
       setCupomAplicado(true);
-      setPrecoFinal(PRECO_ORIGINAL - DESCONTO_CUPOM);
+      setCupomNome(cupomLower);
+      setDesconto(descontoCupom);
+      setPrecoFinal(Math.max(PRECO_ORIGINAL - descontoCupom, 0.10));
     } else {
       setCupomAplicado(false);
+      setCupomNome(null);
+      setDesconto(0);
       setPrecoFinal(PRECO_ORIGINAL);
     }
   }, [cupomValue]);
@@ -106,7 +120,7 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
           url: data.url,
           whatsapp: data.whatsapp,
           valor: precoFinal,
-          cupom: cupomAplicado ? CUPOM_VALIDO : null,
+          cupom: cupomAplicado ? cupomNome : null,
         },
       });
 
@@ -259,15 +273,15 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
           {cupomAplicado ? (
             <>
               <p className="text-muted-foreground line-through text-sm">
-                De R$ {PRECO_ORIGINAL},00
+                De R$ {PRECO_ORIGINAL.toFixed(2).replace('.', ',')}
               </p>
               <p className="text-accent font-semibold text-lg">
-                💰 Por R$ {precoFinal},00 (Cupom aplicado!)
+                💰 Por R$ {precoFinal.toFixed(2).replace('.', ',')} (Cupom aplicado!)
               </p>
             </>
           ) : (
             <p className="text-accent font-semibold">
-              💰 Valor: R$ {PRECO_ORIGINAL},00 (Pagamento via PIX)
+              💰 Valor: R$ {PRECO_ORIGINAL.toFixed(2).replace('.', ',')} (Pagamento via PIX)
             </p>
           )}
         </div>
@@ -367,7 +381,7 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
                   />
                 </FormControl>
                 {cupomAplicado && (
-                  <p className="text-accent text-sm">✓ Cupom válido! Desconto de R$ {DESCONTO_CUPOM},00</p>
+                  <p className="text-accent text-sm">✓ Cupom válido! Desconto de R$ {desconto.toFixed(2).replace('.', ',')}</p>
                 )}
                 <FormMessage />
               </FormItem>
@@ -387,7 +401,7 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
             ) : (
               <>
                 <CreditCard className="w-4 h-4 mr-2" />
-                Pagar R$ {precoFinal},00 via PIX
+                Pagar R$ {precoFinal.toFixed(2).replace('.', ',')} via PIX
               </>
             )}
           </Button>
