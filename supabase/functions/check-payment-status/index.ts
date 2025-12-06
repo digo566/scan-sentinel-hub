@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const WEBHOOK_PAGAMENTO_CONFIRMADO = "https://n8n.srv1084954.hstgr.cloud/webhook/26010f42-aec7-4425-8476-6f052164d7fa";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { payment_id } = await req.json();
+    const { payment_id, cliente_nome, cliente_whatsapp, valor, cupom_usado } = await req.json();
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
 
     if (!accessToken) {
@@ -45,6 +46,39 @@ serve(async (req) => {
       status: data.status,
       status_detail: data.status_detail,
     });
+
+    // Se o pagamento foi aprovado, enviar webhook
+    if (data.status === "approved" && cliente_nome && cliente_whatsapp) {
+      console.log("Payment approved, sending webhook notification...");
+      
+      try {
+        const webhookPayload = {
+          tipo: "pagamento_confirmado",
+          nome: cliente_nome,
+          whatsapp: cliente_whatsapp,
+          valor: valor,
+          cupom_utilizado: cupom_usado,
+          payment_id: data.id,
+          status: data.status,
+          timestamp: new Date().toISOString(),
+        };
+
+        console.log("Webhook payload:", webhookPayload);
+
+        await fetch(WEBHOOK_PAGAMENTO_CONFIRMADO, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(webhookPayload),
+        });
+
+        console.log("Payment confirmed webhook sent successfully");
+      } catch (webhookError) {
+        console.error("Error sending payment confirmed webhook:", webhookError);
+        // Não falhar a requisição por causa do webhook
+      }
+    }
 
     return new Response(
       JSON.stringify({ 
