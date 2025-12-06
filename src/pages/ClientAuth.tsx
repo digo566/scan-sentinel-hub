@@ -177,6 +177,9 @@ export default function ClientAuth() {
       });
 
       if (response.error) throw response.error;
+      
+      const data = response.data;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: 'Código enviado!',
@@ -370,10 +373,10 @@ export default function ClientAuth() {
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Enviando...
+                      Solicitando...
                     </>
                   ) : (
-                    'Enviar código'
+                    'Solicitar código'
                   )}
                 </Button>
               </form>
