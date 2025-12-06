@@ -11,8 +11,10 @@ interface PixPaymentProps {
   qrCodeBase64: string;
   valor: number;
   cupomUsado: boolean;
+  cupomNome: string;
   clienteNome: string;
   clienteWhatsapp: string;
+  clienteUrl: string;
   onPaymentConfirmed: () => void;
   onCancel: () => void;
 }
@@ -26,8 +28,10 @@ export function PixPayment({
   qrCodeBase64, 
   valor,
   cupomUsado,
+  cupomNome,
   clienteNome,
   clienteWhatsapp,
+  clienteUrl,
   onPaymentConfirmed, 
   onCancel 
 }: PixPaymentProps) {
@@ -78,8 +82,10 @@ export function PixPayment({
           tipo: 'pagamento_expirado',
           nome: clienteNome,
           whatsapp: clienteWhatsapp,
+          url: clienteUrl,
           valor: valor,
           cupom_utilizado: cupomUsado,
+          cupom_nome: cupomNome,
           payment_id: paymentId,
           timestamp: new Date().toISOString(),
         }),
@@ -111,8 +117,10 @@ export function PixPayment({
             payment_id: paymentId,
             cliente_nome: clienteNome,
             cliente_whatsapp: clienteWhatsapp,
+            cliente_url: clienteUrl,
             valor: valor,
-            cupom_usado: cupomUsado
+            cupom_usado: cupomUsado,
+            cupom_nome: cupomNome
           }
         });
 
@@ -162,8 +170,10 @@ export function PixPayment({
           payment_id: paymentId,
           cliente_nome: clienteNome,
           cliente_whatsapp: clienteWhatsapp,
+          cliente_url: clienteUrl,
           valor: valor,
-          cupom_usado: cupomUsado
+          cupom_usado: cupomUsado,
+          cupom_nome: cupomNome
         }
       });
 

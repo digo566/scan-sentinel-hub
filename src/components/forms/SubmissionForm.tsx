@@ -246,8 +246,10 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
           qrCodeBase64={pixData.qrCodeBase64}
           valor={precoFinal}
           cupomUsado={cupomAplicado}
+          cupomNome={formData.cupom || ''}
           clienteNome={formData.nome}
           clienteWhatsapp={formData.whatsapp}
+          clienteUrl={formData.url}
           onPaymentConfirmed={handlePaymentConfirmed}
           onCancel={handleCancelPayment}
         />
