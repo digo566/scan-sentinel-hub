@@ -19,8 +19,9 @@ serve(async (req) => {
       throw new Error("Payment configuration error");
     }
 
-    // Valor padrão é 20, com cupom é 10
-    const transactionAmount = valor || 20;
+    // Valor padrão é 20, com cupom aplica desconto
+    // Arredondar para 2 casas decimais para evitar problemas de precisão
+    const transactionAmount = Math.round((valor || 20) * 100) / 100;
 
     console.log("Creating PIX payment for:", { nome, email, url, valor: transactionAmount, cupom });
 
