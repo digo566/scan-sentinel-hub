@@ -19,8 +19,8 @@ interface PixPaymentProps {
   onCancel: () => void;
 }
 
-// PIX expira em 30 minutos (1800 segundos)
-const PIX_EXPIRATION_SECONDS = 30 * 60;
+// PIX expira em 10 minutos (600 segundos)
+const PIX_EXPIRATION_SECONDS = 10 * 60;
 
 export function PixPayment({ 
   paymentId, 
