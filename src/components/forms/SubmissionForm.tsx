@@ -32,11 +32,14 @@ interface SubmissionFormProps {
 
 const PRECO_ORIGINAL = 20;
 
-// Cupons válidos e seus descontos
-const CUPONS: Record<string, number> = {
+// Cupons fixos do sistema
+const CUPONS_FIXOS: Record<string, number> = {
   'cupom10': 10,    // R$ 10 de desconto (preço final: R$ 10,00)
   '10c': 19.90,     // R$ 19,90 de desconto (preço final: R$ 0,10)
 };
+
+// Desconto para cupons de parceiros
+const DESCONTO_PARCEIRO = 5;
 
 export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,6 +53,7 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
   const [formData, setFormData] = useState<FormData | null>(null);
   const [cupomAplicado, setCupomAplicado] = useState(false);
   const [precoFinal, setPrecoFinal] = useState(PRECO_ORIGINAL);
+  const [isPartnerCoupon, setIsPartnerCoupon] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -69,22 +73,55 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
   const [cupomNome, setCupomNome] = useState<string | null>(null);
   const [desconto, setDesconto] = useState(0);
 
-  // Verificar cupom
+  // Verificar cupom (fixo ou de parceiro)
   useEffect(() => {
-    const cupomLower = cupomValue?.toLowerCase() || '';
-    const descontoCupom = CUPONS[cupomLower];
+    const verificarCupom = async () => {
+      const cupomLower = cupomValue?.toLowerCase().trim() || '';
+      
+      if (!cupomLower) {
+        setCupomAplicado(false);
+        setCupomNome(null);
+        setDesconto(0);
+        setPrecoFinal(PRECO_ORIGINAL);
+        setIsPartnerCoupon(false);
+        return;
+      }
+      
+      // Verificar cupons fixos primeiro
+      const descontoFixo = CUPONS_FIXOS[cupomLower];
+      if (descontoFixo !== undefined) {
+        setCupomAplicado(true);
+        setCupomNome(cupomLower);
+        setDesconto(descontoFixo);
+        setPrecoFinal(Math.max(PRECO_ORIGINAL - descontoFixo, 0.10));
+        setIsPartnerCoupon(false);
+        return;
+      }
+      
+      // Verificar se é cupom de parceiro
+      const { data: partnerCoupon } = await supabase
+        .from('master_partners')
+        .select('coupon_code')
+        .eq('coupon_code', cupomLower)
+        .maybeSingle();
+      
+      if (partnerCoupon) {
+        setCupomAplicado(true);
+        setCupomNome(cupomLower);
+        setDesconto(DESCONTO_PARCEIRO);
+        setPrecoFinal(PRECO_ORIGINAL - DESCONTO_PARCEIRO);
+        setIsPartnerCoupon(true);
+      } else {
+        setCupomAplicado(false);
+        setCupomNome(null);
+        setDesconto(0);
+        setPrecoFinal(PRECO_ORIGINAL);
+        setIsPartnerCoupon(false);
+      }
+    };
     
-    if (descontoCupom !== undefined) {
-      setCupomAplicado(true);
-      setCupomNome(cupomLower);
-      setDesconto(descontoCupom);
-      setPrecoFinal(Math.max(PRECO_ORIGINAL - descontoCupom, 0.10));
-    } else {
-      setCupomAplicado(false);
-      setCupomNome(null);
-      setDesconto(0);
-      setPrecoFinal(PRECO_ORIGINAL);
-    }
+    const debounce = setTimeout(verificarCupom, 300);
+    return () => clearTimeout(debounce);
   }, [cupomValue]);
 
   // Preencher campos se usuário estiver logado

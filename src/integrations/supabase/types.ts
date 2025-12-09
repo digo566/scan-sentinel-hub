@@ -14,6 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
+      master_partners: {
+        Row: {
+          coupon_code: string
+          cpf: string
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+          whatsapp: string
+        }
+        Insert: {
+          coupon_code: string
+          cpf: string
+          created_at?: string
+          email: string
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+          whatsapp: string
+        }
+        Update: {
+          coupon_code?: string
+          cpf?: string
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
+      master_registration_settings: {
+        Row: {
+          created_at: string
+          id: string
+          registration_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          registration_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          registration_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      partner_coupon_usage: {
+        Row: {
+          commission_value: number
+          created_at: string
+          id: string
+          paid_at: string | null
+          partner_id: string
+          payment_receipt_url: string | null
+          payment_status: Database["public"]["Enums"]["affiliate_payment_status"]
+          payment_value: number
+          submission_id: string
+        }
+        Insert: {
+          commission_value?: number
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          partner_id: string
+          payment_receipt_url?: string | null
+          payment_status?: Database["public"]["Enums"]["affiliate_payment_status"]
+          payment_value?: number
+          submission_id: string
+        }
+        Update: {
+          commission_value?: number
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          partner_id?: string
+          payment_receipt_url?: string | null
+          payment_status?: Database["public"]["Enums"]["affiliate_payment_status"]
+          payment_value?: number
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_coupon_usage_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "master_partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_coupon_usage_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       password_recovery_codes: {
         Row: {
           attempts: number
@@ -151,6 +259,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_partner_discount: { Args: { coupon_code: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -160,8 +269,9 @@ export type Database = {
       }
     }
     Enums: {
+      affiliate_payment_status: "pending" | "paid"
       analysis_status: "pendente" | "seguro" | "vulneravel"
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "master_partner"
       contact_status: "pendente" | "em_contato" | "resolvido"
     }
     CompositeTypes: {
@@ -290,8 +400,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      affiliate_payment_status: ["pending", "paid"],
       analysis_status: ["pendente", "seguro", "vulneravel"],
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "master_partner"],
       contact_status: ["pendente", "em_contato", "resolvido"],
     },
   },

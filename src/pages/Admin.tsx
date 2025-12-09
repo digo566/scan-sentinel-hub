@@ -5,11 +5,12 @@ import { SubmissionsTable } from '@/components/admin/SubmissionsTable';
 import { StatsCards } from '@/components/admin/StatsCards';
 import { PartnersManager } from '@/components/admin/PartnersManager';
 import { RemarketingTable } from '@/components/admin/RemarketingTable';
+import { AffiliatesManager } from '@/components/admin/AffiliatesManager';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, LogOut, Home, Loader2, AlertTriangle, FileText, Users, Target } from 'lucide-react';
+import { Shield, LogOut, Home, Loader2, AlertTriangle, FileText, Users, Target, Tag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 type AnalysisStatus = 'pendente' | 'seguro' | 'vulneravel';
@@ -174,7 +175,7 @@ const Admin = () => {
         <StatsCards {...stats} />
 
         <Tabs defaultValue="submissions" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-xl">
+          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
             <TabsTrigger value="submissions" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Pedidos
@@ -182,6 +183,10 @@ const Admin = () => {
             <TabsTrigger value="remarketing" className="flex items-center gap-2">
               <Target className="w-4 h-4" />
               Remarketing ({abandonedSubmissions.length})
+            </TabsTrigger>
+            <TabsTrigger value="affiliates" className="flex items-center gap-2">
+              <Tag className="w-4 h-4" />
+              Afiliados
             </TabsTrigger>
             <TabsTrigger value="clients" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -224,6 +229,10 @@ const Admin = () => {
             ) : (
               <RemarketingTable submissions={abandonedSubmissions} onRefresh={fetchAbandonedSubmissions} />
             )}
+          </TabsContent>
+
+          <TabsContent value="affiliates" className="mt-6">
+            <AffiliatesManager />
           </TabsContent>
 
           <TabsContent value="clients" className="mt-6">
