@@ -98,18 +98,16 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
         return;
       }
       
-      // Verificar se é cupom de parceiro
-      const { data: partnerCoupon } = await supabase
-        .from('master_partners')
-        .select('coupon_code')
-        .eq('coupon_code', cupomLower)
-        .maybeSingle();
+      // Verificar se é cupom de parceiro (master ou comum) usando função segura
+      const { data: discountResult, error } = await supabase.rpc('get_partner_discount', {
+        coupon_code: cupomLower
+      });
       
-      if (partnerCoupon) {
+      if (!error && discountResult && discountResult > 0) {
         setCupomAplicado(true);
         setCupomNome(cupomLower);
-        setDesconto(DESCONTO_PARCEIRO);
-        setPrecoFinal(PRECO_ORIGINAL - DESCONTO_PARCEIRO);
+        setDesconto(discountResult);
+        setPrecoFinal(PRECO_ORIGINAL - discountResult);
         setIsPartnerCoupon(true);
       } else {
         setCupomAplicado(false);
