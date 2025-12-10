@@ -5,6 +5,7 @@ import { PartnerLogin } from '@/components/partner/PartnerLogin';
 import { PartnerRegister } from '@/components/partner/PartnerRegister';
 import { PartnerDashboard } from '@/components/partner/PartnerDashboard';
 import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function Partner() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -15,20 +16,34 @@ export default function Partner() {
   useEffect(() => {
     const checkAccess = async () => {
       // Wait for auth to finish loading first
-      if (authLoading) return;
-      
-      if (user) {
-        console.log('Checking partner status for user:', user.id);
-        const { data: partnerData, error } = await supabase
-          .from('partners')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        
-        console.log('Partner check result:', { partnerData, error });
-        setIsPartner(!!partnerData);
+      if (authLoading) {
+        return;
       }
       
+      if (!user) {
+        setIsPartner(false);
+        setCheckingPartner(false);
+        return;
+      }
+
+      console.log('Checking partner status for user:', user.id);
+      
+      // Add a small delay to ensure session is fully synchronized
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const { data: partnerData, error } = await supabase
+        .from('partners')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      console.log('Partner check result:', { partnerData, error });
+      
+      if (error) {
+        console.error('Error checking partner status:', error);
+      }
+      
+      setIsPartner(!!partnerData);
       setCheckingPartner(false);
     };
 
@@ -48,9 +63,24 @@ export default function Partner() {
     return <PartnerDashboard />;
   }
 
-  // Se está logado mas não é parceiro, fazer logout silencioso
+  // Se está logado mas não é parceiro, mostrar mensagem e botão de logout
   if (user && !isPartner) {
-    supabase.auth.signOut();
+    console.log('User logged in but not a partner, user_id:', user.id);
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <p className="text-muted-foreground">
+            Você não possui uma conta de parceiro associada a este email.
+          </p>
+          <Button 
+            onClick={() => supabase.auth.signOut().then(() => window.location.reload())}
+            variant="outline"
+          >
+            Fazer logout e tentar novamente
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
