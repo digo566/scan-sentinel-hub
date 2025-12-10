@@ -56,8 +56,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validar senha
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    // Validar senha (mínimo 8 caracteres, maiúscula, minúscula, número e caractere especial)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
     if (!password || !passwordRegex.test(password)) {
       return new Response(
         JSON.stringify({ error: 'Senha deve ter no mínimo 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial' }),
