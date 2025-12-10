@@ -186,9 +186,22 @@ export function PartnerRegister({ onSwitchToLogin }: PartnerRegisterProps) {
         },
       });
 
-      if (error) throw error;
+      console.log('Register partner response:', { data, error });
 
-      if (data.error) {
+      // Handle edge function errors (non-2xx responses)
+      if (error) {
+        // Try to extract error message from the response
+        const errorMessage = error.message || 'Erro ao cadastrar. Tente novamente.';
+        toast({
+          title: 'Erro no cadastro',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Handle application-level errors returned in data
+      if (data?.error) {
         toast({
           title: 'Erro no cadastro',
           description: data.error,
@@ -204,9 +217,23 @@ export function PartnerRegister({ onSwitchToLogin }: PartnerRegisterProps) {
       });
     } catch (error: any) {
       console.error('Registration error:', error);
+      
+      // Try to parse error context if available
+      let errorMessage = 'Ocorreu um erro. Tente novamente.';
+      if (error?.context?.body) {
+        try {
+          const body = JSON.parse(error.context.body);
+          errorMessage = body.error || errorMessage;
+        } catch (e) {
+          // Ignore parsing errors
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: 'Erro no cadastro',
-        description: error.message || 'Ocorreu um erro. Tente novamente.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
