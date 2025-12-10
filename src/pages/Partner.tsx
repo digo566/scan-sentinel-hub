@@ -8,29 +8,34 @@ import { Loader2 } from 'lucide-react';
 
 export default function Partner() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [loading, setLoading] = useState(true);
+  const [checkingPartner, setCheckingPartner] = useState(true);
   const [isPartner, setIsPartner] = useState(false);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     const checkAccess = async () => {
+      // Wait for auth to finish loading first
+      if (authLoading) return;
+      
       if (user) {
-        const { data: partnerData } = await supabase
+        console.log('Checking partner status for user:', user.id);
+        const { data: partnerData, error } = await supabase
           .from('partners')
           .select('id')
           .eq('user_id', user.id)
           .maybeSingle();
         
+        console.log('Partner check result:', { partnerData, error });
         setIsPartner(!!partnerData);
       }
       
-      setLoading(false);
+      setCheckingPartner(false);
     };
 
     checkAccess();
-  }, [user]);
+  }, [user, authLoading]);
 
-  if (loading) {
+  if (authLoading || checkingPartner) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
