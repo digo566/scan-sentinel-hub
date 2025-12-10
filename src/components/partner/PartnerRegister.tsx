@@ -39,10 +39,10 @@ export function PartnerRegister({ onSwitchToLogin }: PartnerRegisterProps) {
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const { toast } = useToast();
 
-  // Verificar cupom de master partner
+  // Verificar cupom de master partner usando função RPC (contorna RLS)
   useEffect(() => {
     const checkMasterCoupon = async () => {
-      const coupon = formData.masterCoupon.toLowerCase().trim();
+      const coupon = formData.masterCoupon.trim();
       
       if (!coupon) {
         setMasterCouponValid(false);
@@ -52,14 +52,12 @@ export function PartnerRegister({ onSwitchToLogin }: PartnerRegisterProps) {
       setCheckingCoupon(true);
       
       try {
-        const { data, error } = await supabase
-          .from('master_partners')
-          .select('id, coupon_code')
-          .ilike('coupon_code', coupon)
-          .maybeSingle();
+        const { data, error } = await supabase.rpc('validate_master_coupon', {
+          coupon: coupon
+        });
 
-        console.log('Master coupon check:', { coupon, data, error });
-        setMasterCouponValid(!!data);
+        console.log('Master coupon RPC check:', { coupon, data, error });
+        setMasterCouponValid(data === true);
       } catch (err) {
         console.error('Error checking master coupon:', err);
         setMasterCouponValid(false);

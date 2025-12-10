@@ -392,6 +392,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_master_coupon: { Args: { coupon: string }; Returns: boolean }
     }
     Enums: {
       affiliate_payment_status: "pending" | "paid"
