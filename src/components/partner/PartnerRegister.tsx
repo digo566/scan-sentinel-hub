@@ -51,17 +51,24 @@ export function PartnerRegister({ onSwitchToLogin }: PartnerRegisterProps) {
 
       setCheckingCoupon(true);
       
-      const { data } = await supabase
-        .from('master_partners')
-        .select('id')
-        .eq('coupon_code', coupon)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from('master_partners')
+          .select('id, coupon_code')
+          .ilike('coupon_code', coupon)
+          .maybeSingle();
 
-      setMasterCouponValid(!!data);
-      setCheckingCoupon(false);
+        console.log('Master coupon check:', { coupon, data, error });
+        setMasterCouponValid(!!data);
+      } catch (err) {
+        console.error('Error checking master coupon:', err);
+        setMasterCouponValid(false);
+      } finally {
+        setCheckingCoupon(false);
+      }
     };
 
-    const debounce = setTimeout(checkMasterCoupon, 300);
+    const debounce = setTimeout(checkMasterCoupon, 500);
     return () => clearTimeout(debounce);
   }, [formData.masterCoupon]);
 
