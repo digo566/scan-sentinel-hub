@@ -1,6 +1,6 @@
 import { CyberScene } from '@/components/3d/CyberScene';
 import { VulnerabilityShowcase } from '@/components/sections/VulnerabilityShowcase';
-import { Shield, Lock, Eye, Zap, ArrowRight } from 'lucide-react';
+import { Shield, Lock, Eye, Zap, ArrowRight, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -29,6 +29,15 @@ const Index = () => {
               >
                 <Lock className="w-4 h-4 mr-2" />
                 Área do Cliente
+              </Button>
+            </Link>
+            <Link to="/parceiro">
+              <Button
+                variant="ghost"
+                className="text-secondary hover:text-secondary/80"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Seja Parceiro
               </Button>
             </Link>
             <Link to="/admin">

@@ -122,6 +122,131 @@ export type Database = {
           },
         ]
       }
+      partner_registration_settings: {
+        Row: {
+          created_at: string
+          id: string
+          registration_enabled: boolean
+          registration_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          registration_enabled?: boolean
+          registration_price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          registration_enabled?: boolean
+          registration_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      partner_sales: {
+        Row: {
+          commission_value: number
+          created_at: string
+          id: string
+          master_commission_value: number
+          paid_at: string | null
+          partner_id: string
+          payment_receipt_url: string | null
+          payment_status: string
+          sale_value: number
+          submission_id: string
+        }
+        Insert: {
+          commission_value?: number
+          created_at?: string
+          id?: string
+          master_commission_value?: number
+          paid_at?: string | null
+          partner_id: string
+          payment_receipt_url?: string | null
+          payment_status?: string
+          sale_value?: number
+          submission_id: string
+        }
+        Update: {
+          commission_value?: number
+          created_at?: string
+          id?: string
+          master_commission_value?: number
+          paid_at?: string | null
+          partner_id?: string
+          payment_receipt_url?: string | null
+          payment_status?: string
+          sale_value?: number
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_sales_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_sales_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partners: {
+        Row: {
+          coupon_code: string
+          cpf: string
+          created_at: string
+          id: string
+          master_partner_id: string | null
+          nome: string
+          pix_key: string
+          updated_at: string
+          user_id: string
+          whatsapp: string
+        }
+        Insert: {
+          coupon_code: string
+          cpf: string
+          created_at?: string
+          id?: string
+          master_partner_id?: string | null
+          nome: string
+          pix_key: string
+          updated_at?: string
+          user_id: string
+          whatsapp: string
+        }
+        Update: {
+          coupon_code?: string
+          cpf?: string
+          created_at?: string
+          id?: string
+          master_partner_id?: string | null
+          nome?: string
+          pix_key?: string
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partners_master_partner_id_fkey"
+            columns: ["master_partner_id"]
+            isOneToOne: false
+            referencedRelation: "master_partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       password_recovery_codes: {
         Row: {
           attempts: number
