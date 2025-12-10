@@ -81,6 +81,15 @@ Deno.serve(async (req) => {
 
     // Verificar se cupom já existe
     const couponLower = couponCode.toLowerCase().trim();
+    const masterCouponLower = masterCoupon?.toLowerCase().trim();
+    
+    // Verificar se o parceiro está tentando usar o cupom do master como seu próprio cupom
+    if (masterCouponLower && couponLower === masterCouponLower) {
+      return new Response(
+        JSON.stringify({ error: 'Você não pode usar o cupom do Parceiro Master como seu próprio cupom. Crie um código único para você.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     const { data: existingCoupon } = await supabase
       .from('partners')
@@ -90,7 +99,7 @@ Deno.serve(async (req) => {
 
     if (existingCoupon) {
       return new Response(
-        JSON.stringify({ error: 'Este código de cupom já está em uso' }),
+        JSON.stringify({ error: 'Este código de cupom já está em uso por outro parceiro' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
