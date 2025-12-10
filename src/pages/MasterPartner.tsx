@@ -55,29 +55,9 @@ export default function MasterPartner() {
     return <MasterPartnerDashboard />;
   }
 
-  // Se está logado mas não é master partner
+  // Se está logado mas não é master partner, fazer logout silencioso para permitir login como parceiro
   if (user && !isMasterPartner) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="glass rounded-xl p-8 max-w-md text-center border-glow">
-          <h2 className="font-orbitron text-xl text-foreground mb-4">
-            Acesso Restrito
-          </h2>
-          <p className="text-muted-foreground mb-4">
-            Esta área é exclusiva para Parceiros Master.
-          </p>
-          <button
-            onClick={() => {
-              supabase.auth.signOut();
-              window.location.reload();
-            }}
-            className="text-primary hover:underline"
-          >
-            Sair e tentar com outra conta
-          </button>
-        </div>
-      </div>
-    );
+    supabase.auth.signOut();
   }
 
   return (
