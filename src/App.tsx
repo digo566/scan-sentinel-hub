@@ -9,6 +9,7 @@ import Admin from "./pages/Admin";
 import ClientAuth from "./pages/ClientAuth";
 import ClientDashboard from "./pages/ClientDashboard";
 import MasterPartner from "./pages/MasterPartner";
+import Partner from "./pages/Partner";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/auth" element={<ClientAuth />} />
             <Route path="/cliente" element={<ClientDashboard />} />
             <Route path="/parceiro-master" element={<MasterPartner />} />
+            <Route path="/parceiro" element={<Partner />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

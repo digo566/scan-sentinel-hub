@@ -1,128 +1,228 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      console.error("Missing authorization header");
-      throw new Error("Missing authorization header");
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    const { nome, whatsapp, cpf, pixKey, couponCode, email, password, masterCoupon, paymentId } = await req.json();
+
+    console.log('Partner registration request:', { nome, email, couponCode, masterCoupon, paymentId });
+
+    // Validações básicas
+    if (!nome || nome.length < 2) {
+      return new Response(
+        JSON.stringify({ error: 'Nome deve ter no mínimo 2 caracteres' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("Missing env vars:", { supabaseUrl: !!supabaseUrl, supabaseServiceKey: !!supabaseServiceKey });
-      throw new Error("Server configuration error");
+    if (!cpf || cpf.replace(/\D/g, '').length !== 11) {
+      return new Response(
+        JSON.stringify({ error: 'CPF inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Use service role client to verify the user
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    if (!whatsapp || whatsapp.replace(/\D/g, '').length < 10) {
+      return new Response(
+        JSON.stringify({ error: 'WhatsApp inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Extract JWT token from header
-    const token = authHeader.replace("Bearer ", "");
+    if (!pixKey || pixKey.length < 3) {
+      return new Response(
+        JSON.stringify({ error: 'Chave PIX inválida' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!couponCode || couponCode.length < 3) {
+      return new Response(
+        JSON.stringify({ error: 'Código do cupom deve ter no mínimo 3 caracteres' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validar senha
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!password || !passwordRegex.test(password)) {
+      return new Response(
+        JSON.stringify({ error: 'Senha deve ter no mínimo 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verificar se CPF já existe
+    const { data: existingCpf } = await supabase
+      .from('partners')
+      .select('id')
+      .eq('cpf', cpf.replace(/\D/g, ''))
+      .maybeSingle();
+
+    if (existingCpf) {
+      return new Response(
+        JSON.stringify({ error: 'CPF já cadastrado' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verificar se cupom já existe
+    const couponLower = couponCode.toLowerCase().trim();
     
-    // Verify the user using the token
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: existingCoupon } = await supabase
+      .from('partners')
+      .select('id')
+      .eq('coupon_code', couponLower)
+      .maybeSingle();
+
+    if (existingCoupon) {
+      return new Response(
+        JSON.stringify({ error: 'Este código de cupom já está em uso' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verificar se não conflita com cupom de master partner
+    const { data: existingMasterCoupon } = await supabase
+      .from('master_partners')
+      .select('id')
+      .eq('coupon_code', couponLower)
+      .maybeSingle();
+
+    if (existingMasterCoupon) {
+      return new Response(
+        JSON.stringify({ error: 'Este código de cupom já está em uso' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Cupons fixos do sistema
+    const cuponsFixos = ['cupom10', '10c'];
+    if (cuponsFixos.includes(couponLower)) {
+      return new Response(
+        JSON.stringify({ error: 'Este código de cupom não pode ser utilizado' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verificar cupom de master partner (se fornecido)
+    let masterPartnerId: string | null = null;
     
-    if (authError) {
-      console.error("Auth error:", authError);
-      throw new Error("Invalid token");
+    if (masterCoupon) {
+      const { data: masterPartner } = await supabase
+        .from('master_partners')
+        .select('id')
+        .eq('coupon_code', masterCoupon.toLowerCase().trim())
+        .maybeSingle();
+
+      if (!masterPartner) {
+        return new Response(
+          JSON.stringify({ error: 'Cupom de Parceiro Master inválido' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      masterPartnerId = masterPartner.id;
+      console.log('Master partner found:', masterPartnerId);
+    } else {
+      // Sem cupom de master, precisa de pagamento
+      if (!paymentId) {
+        return new Response(
+          JSON.stringify({ error: 'Pagamento é obrigatório para registro sem cupom de Parceiro Master' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Verificar se o pagamento foi aprovado no Mercado Pago
+      const mpAccessToken = Deno.env.get('MERCADO_PAGO_ACCESS_TOKEN');
+      
+      const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+        headers: {
+          'Authorization': `Bearer ${mpAccessToken}`,
+        },
+      });
+
+      const paymentData = await paymentResponse.json();
+      console.log('Payment status:', paymentData.status);
+
+      if (paymentData.status !== 'approved') {
+        return new Response(
+          JSON.stringify({ error: 'Pagamento não foi confirmado' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
-    
-    if (!user) {
-      console.error("No user found from token");
-      throw new Error("Unauthorized");
-    }
 
-    console.log("User verified:", user.id);
-
-    // Check if user is admin
-    const { data: roleData, error: roleError } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .single();
-
-    if (roleError) {
-      console.error("Role error:", roleError);
-    }
-
-    if (!roleData) {
-      console.error("User is not admin");
-      throw new Error("Only admins can register partners");
-    }
-
-    console.log("Admin verified, creating partner...");
-
-    // Get partner data
-    const { email, password, nome, whatsapp } = await req.json();
-
-    if (!email || !password || !nome) {
-      throw new Error("Email, password and nome are required");
-    }
-
-    // Create the new user
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+    // Criar usuário no Auth
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
     });
 
-    if (createError) {
-      console.error("Create user error:", createError);
-      throw new Error(createError.message);
+    if (authError) {
+      console.error('Auth error:', authError);
+      if (authError.message.includes('already been registered')) {
+        return new Response(
+          JSON.stringify({ error: 'Este e-mail já está cadastrado' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      throw authError;
     }
 
-    console.log("User created:", newUser.user.id);
+    const userId = authData.user.id;
+    console.log('User created:', userId);
 
-    // Update profile with name and whatsapp
-    const { error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .update({ nome, whatsapp })
-      .eq("user_id", newUser.user.id);
+    // Inserir parceiro
+    const { error: partnerError } = await supabase
+      .from('partners')
+      .insert({
+        user_id: userId,
+        nome,
+        whatsapp: whatsapp.replace(/\D/g, ''),
+        cpf: cpf.replace(/\D/g, ''),
+        pix_key: pixKey,
+        coupon_code: couponLower,
+        master_partner_id: masterPartnerId,
+      });
 
-    if (profileError) {
-      console.error("Profile update error:", profileError);
+    if (partnerError) {
+      console.error('Partner insert error:', partnerError);
+      // Remover usuário se falhar a inserção do parceiro
+      await supabase.auth.admin.deleteUser(userId);
+      throw partnerError;
     }
 
-    // Update role to admin
-    const { error: roleUpdateError } = await supabaseAdmin
-      .from("user_roles")
-      .update({ role: "admin" })
-      .eq("user_id", newUser.user.id);
-
-    if (roleUpdateError) {
-      console.error("Role update error:", roleUpdateError);
-    }
-
-    console.log("Partner registered successfully");
+    console.log('Partner registered successfully');
 
     return new Response(
-      JSON.stringify({ success: true, user_id: newUser.user.id }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ 
+        success: true, 
+        message: 'Parceiro cadastrado com sucesso',
+        usedMasterCoupon: !!masterPartnerId,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error: unknown) {
-    console.error("Error registering partner:", error);
+
+  } catch (error) {
+    console.error('Error registering partner:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ error: 'Erro ao cadastrar parceiro. Tente novamente.' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
